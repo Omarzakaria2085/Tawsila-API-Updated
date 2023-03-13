@@ -21,7 +21,15 @@ user.post('/orderByCost', async (req, res) => {
     const Destination = req.body.Destination;
     const [locLat,locLong] = Location.split(',');
     const [destLat,destLong] = Destination.split(',');
-    const result = await userModel.orderByDistance(parseFloat(locLat) ,parseFloat(locLong),parseFloat(destLat),parseFloat(destLong));
+    const result = await userModel.orderByCost(parseFloat(locLat) ,parseFloat(locLong),parseFloat(destLat),parseFloat(destLong));
+    res.json(result);
+});
+user.post('/nearby', async (req, res) => {
+    const Location = req.body.Location;
+    const Destination = req.body.Destination;
+    const [locLat,locLong] = Location.split(',');
+    const [destLat,destLong] = Destination.split(',');
+    const result = await userModel.nearby(parseFloat(locLat) ,parseFloat(locLong),parseFloat(destLat),parseFloat(destLong));
     res.json(result);
 });
 
