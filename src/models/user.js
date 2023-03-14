@@ -144,12 +144,12 @@ const nearby = async (locationNodeLatitude,locationNodeLongitude,destinationNode
         `
         WITH ${locationNodeLatitude} as locLat, ${locationNodeLongitude} as locLong , "Location" as input
         MATCH (l:LOCATION)
-        WHERE point.distance(point({latitude: locLat, longitude: locLong}), point({latitude: l.latitude, longitude: l.longitude})) < 200
+        WHERE point.distance(point({latitude: locLat, longitude: locLong}), point({latitude: l.latitude, longitude: l.longitude})) < 2000
         RETURN l.name,l.latitude, l.longitude,point.distance(point({latitude: locLat, longitude: locLong}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, input
         union all
         WITH ${destinationNodeLatitude} as destLat, ${destinationNodeLongitude} as destLong, "Destination" as input
         MATCH (l:LOCATION)
-        WHERE point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude})) < 200
+        WHERE point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude})) < 2000
         RETURN l.name,l.latitude, l.longitude,point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, input
         ORDER BY point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude}))
     `
