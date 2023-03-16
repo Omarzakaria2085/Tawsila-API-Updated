@@ -142,16 +142,15 @@ const nearby = async (locationNodeLatitude,locationNodeLongitude,destinationNode
 
     let result = await session.run(
         `
-        WITH ${locationNodeLatitude} as locLat, ${locationNodeLongitude} as locLong , "Location" as input
         MATCH (l:LOCATION)
-        WHERE point.distance(point({latitude: locLat, longitude: locLong}), point({latitude: l.latitude, longitude: l.longitude})) < 2000
-        RETURN l.name,l.latitude, l.longitude,point.distance(point({latitude: locLat, longitude: locLong}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, input
-        union all
-        WITH ${destinationNodeLatitude} as destLat, ${destinationNodeLongitude} as destLong, "Destination" as input
-        MATCH (l:LOCATION)
-        WHERE point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude})) < 2000
-        RETURN l.name,l.latitude, l.longitude,point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, input
-        ORDER BY point.distance(point({latitude: destLat, longitude: destLong}), point({latitude: l.latitude, longitude: l.longitude}))
+WHERE point.distance(point({latitude:${locationNodeLatitude}, longitude: ${locationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) <= 2000
+RETURN l.name, l.latitude, l.longitude, point.distance(point({latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, "Location" AS input
+ORDER BY Distance
+UNION ALL
+MATCH (l:LOCATION)
+WHERE point.distance(point({latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) <= 2000
+RETURN l.name, l.latitude, l.longitude, point.distance(point({latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, "Destination" AS input
+ORDER BY Distance
     `
         )
     let nearbyPlaces=[];
