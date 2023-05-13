@@ -1,7 +1,6 @@
 {
   "name": "public_transportations_api",
   "version": "1.0.0",
-  "description": "",
   "main": "app.js",
   "scripts": {
     "start": "nodemon app.js"
@@ -23,7 +22,7 @@
     "joi": "^17.7.0",
     "nanoid": "^4.0.0",
     "neo4j-driver": "^5.3.0",
-    "nodemon": "^2.0.20",
+    "nodemon": "^2.0.22",
     "serve": "^14.1.2"
   },
   "devDependencies": {
@@ -33,5 +32,15 @@
     "@babel/polyfill": "^7.12.1",
     "@babel/preset-env": "^7.20.2",
     "babel-core": "^6.26.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Omarzakaria2085/Tawsila-API-Updated.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Omarzakaria2085/Tawsila-API-Updated/issues"
+  },
+  "homepage": "https://github.com/Omarzakaria2085/Tawsila-API-Updated#readme",
+  "description": ""
 }

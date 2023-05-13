@@ -19,21 +19,16 @@ const findAll = async () => {
 const orderByDistance = async (locationNodeLatitude,locationNodeLongitude,destinationNodeLatitude, destinationNodeLongitude) => {
 
     let result = await session.run(
-        `
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),
-        (n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
+    `
+        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),(n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
         p =(n1)-[:LINE*]->(n2)
         With count(*) as numberOfAvailablePaths
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),
-        (n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
+        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),(n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
         path =(n1)-[:LINE*]->(n2)
-        return path,numberOfAvailablePaths,
-        reduce(s=0, i in relationships(path) | s+i.cost ) as totalCost,
-        reduce(s=0, i in relationships(path) | s+i.distance ) as totalDistance,
-        size(nodes(path)) as numberOfStops 
+        return path,numberOfAvailablePaths,reduce(s=0, i in relationships(path) | s+i.cost ) as totalCost,reduce(s=0, i in relationships(path) | s+i.distance ) as totalDistance,size(nodes(path)) as numberOfStops 
         order By totalDistance,totalCost
     `
-        )
+    )
 
         let paths = [];
 
@@ -143,14 +138,14 @@ const nearby = async (locationNodeLatitude,locationNodeLongitude,destinationNode
     let result = await session.run(
         `
         MATCH (l:LOCATION)
-WHERE point.distance(point({latitude:${locationNodeLatitude}, longitude: ${locationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) <= 2000
-RETURN l.name, l.latitude, l.longitude, point.distance(point({latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, "Location" AS input
-ORDER BY Distance
-UNION ALL
-MATCH (l:LOCATION)
-WHERE point.distance(point({latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) <= 2000
-RETURN l.name, l.latitude, l.longitude, point.distance(point({latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, "Destination" AS input
-ORDER BY Distance
+        WHERE point.distance(point({latitude:${locationNodeLatitude}, longitude: ${locationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) <= 2000
+        RETURN l.name, l.latitude, l.longitude, point.distance(point({latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, "Location" AS input
+        ORDER BY Distance
+        UNION ALL
+        MATCH (l:LOCATION)
+        WHERE point.distance(point({latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) <= 2000
+        RETURN l.name, l.latitude, l.longitude, point.distance(point({latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}), point({latitude: l.latitude, longitude: l.longitude})) AS Distance, "Destination" AS input
+        ORDER BY Distance
     `
         )
     let nearbyPlaces=[];
