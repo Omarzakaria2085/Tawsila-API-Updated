@@ -19,6 +19,18 @@ user.post('/orderByDistance', async (req, res) => {
     res.json(result);
 })
 
+user.post('/orderByTime', async (req, res) => {
+  const Location = req.body.Location;
+  const Destination =req.body.Destination;
+  const [locLat,locLong] = Location.split(',');
+  const [destLat,destLong] = Destination.split(',');
+
+  // Get the paths sorted by Distance
+  const result = await userModel.orderByTime(locLat ,locLong,destLat,destLong);
+  res.json(result);
+})
+
+
 user.post('/orderByCost', async (req, res) => {
     const Location = req.body.Location;
     const Destination = req.body.Destination;
