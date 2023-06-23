@@ -281,7 +281,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
     }, {});
 
 
-    console.log(totalTime);
+    // console.log(totalTime);
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
