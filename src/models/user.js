@@ -1,4 +1,5 @@
 const neo4j = require('neo4j-driver');
+const axios = require("axios");
 require('dotenv').config()
 const {
     url,
@@ -53,7 +54,6 @@ const findAll = async () => {
     return { allNodes: result.records.map(i => i.get('n').properties) }
 }
 
-
 async function calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng) {
     try {
         const response = await googleMapsClient.directions({
@@ -77,10 +77,6 @@ async function calculateDistanceAndTime(originLat, originLng, destinationLat, de
         return -1;
     }
 }
-
-
-
-
 
 //function to order all available paths by distance given 2 points
 const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
@@ -199,9 +195,6 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
     return paths;
 }
 
-
-
-
 //function to order all available paths by cost given 2 points
 const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
@@ -316,12 +309,6 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
     return paths;
 }
 
-
-
-
-
-
-
 //function to get the nearby locations
 const nearby = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
@@ -352,99 +339,154 @@ const nearby = async (locationNodeLatitude, locationNodeLongitude, destinationNo
     return nearbyPlaces;
 }
 
+
+
+// add new route
+const addNewRoute = async (
+    locationNodeLatitude,
+    locationNodeLongitude,
+    destinationNodeLatitude,
+    destinationNodeLongitude,
+    cost,
+    lineName,
+    type
+  ) => {
+    try {
+      // nearby
+      const nearby = {
+        method: 'POST',
+        url: 'https://tawsila-api.onrender.com/nearby',
+        headers: {
+          'content-type': 'application/json',
+          'Accept-Encoding': 'null',
+        },
+        data: `{"Location":"${locationNodeLatitude}, ${locationNodeLongitude}","Destination":"${destinationNodeLatitude}, ${destinationNodeLongitude}"}`,
+      };
+  
+      const response = await axios.request(nearby);
+      const nearbyArrayLength = response.data.length;
+      const nearbyArray = response.data;
+      const nearbyLocations = [];
+      const nearbyDestinations = [];
+  
+      // get the closest places to both loc & dest
+      for (let i = 0; i < nearbyArrayLength; i++) {
+        if (nearbyArray[i].inputField === 'Location') {
+          nearbyLocations.push(nearbyArray[i]);
+          nearbyLocations.sort((a, b) => a.distance - b.distance);
+        } else if (nearbyArray[i].inputField === 'Destination') {
+          nearbyDestinations.push(nearbyArray[i]);
+        }
+      }
+  
+      // search inside nearbyLocations, if you found any distance =0, take it as your location, else take the shortest distance
+      let newLocationLat;
+      let newLocationLong;
+      let location;
+      let locName;
+      let locWalkingDistance;
+      for (let i = 0; i < nearbyLocations.length; i++) {
+        if (nearbyLocations[i].distance === 0) {
+          newLocationLat = nearbyLocations[i].latitude;
+          newLocationLong = nearbyLocations[i].longitude;
+          location = `${newLocationLat},${newLocationLong}`;
+          locName = nearbyLocations[i].name;
+          // search in the orderByCost query using them by replacing only the loc
+  
+          break;
+        } else if (nearbyLocations[i].distance !== 0) {
+          newLocationLat = nearbyLocations[0].latitude;
+          newLocationLong = nearbyLocations[0].longitude;
+          location = `${newLocationLat},${newLocationLong}`;
+          locName = nearbyLocations[0].name;
+          locWalkingDistance = nearbyLocations[0].distance;
+          // search in the orderByCost query using them by replacing only the loc
+        }
+      }
+  
+      // search inside nearbyDestinations, if you found any distance =0, take it as your destination, else take the shortest distance
+      let newDestinationLat;
+      let newDestinationLong;
+      let destination;
+      let destName;
+      let destWalkingDistance;
+      for (let i = 0; i < nearbyDestinations.length; i++) {
+        if (nearbyDestinations[i].distance === 0) {
+          newDestinationLat = nearbyDestinations[i].latitude;
+          newDestinationLong = nearbyDestinations[i].longitude;
+          destination = `${newDestinationLat},${newDestinationLong}`;
+          destName = nearbyDestinations[i].name;
+          // search in the orderByCost query using them by replacing only the dest
+  
+          break;
+        } else if (nearbyDestinations[i].distance !== 0) {
+          newDestinationLat = nearbyDestinations[0].latitude;
+          newDestinationLong = nearbyDestinations[0].longitude;
+          destination = `${newDestinationLat},${newDestinationLong}`;
+          destName = nearbyDestinations[0].name;
+          destWalkingDistance = nearbyDestinations[0].distance;
+          // search in the orderByCost query using them by replacing only the dest
+        }
+      }
+  
+      // add new route
+      const result = await session.run(
+        `MATCH (n1:LOCATION {latitude: ${newLocationLat},longitude: ${newLocationLong}}),
+              (n2:LOCATION {latitude: ${newDestinationLat},longitude: ${newDestinationLong}})
+        CREATE (n1)-[r:LINE {cost: ${cost}, distance: 0.7,name: "${lineName}", type: "${type}"}]->(n2)`);
+  
+    //   console.log(result);
+    //   console.log('HOLA! nearby is used');
+    console.log("newLocationLat:", newLocationLat);
+    console.log("newLocationLong:",newLocationLong);
+    console.log("newDestinationLat",newDestinationLat);
+    console.log("newDestinationLong", newDestinationLong);
+    console.log("**********************************");
+    console.log("nearbyLocations", nearbyLocations);
+    console.log("nearbyDestinations", nearbyDestinations);
+      return result;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+
+
+
+
+/* 
+to return the created relationship between the 2 nodes:
+--------------------------------------------------------
+MATCH (a:LOCATION {latitude: 29.9617319,longitude:31.30579410000001})-[r:LINE]->(b:LOCATION {latitude: 30.0154402,longitude:31.2118712})
+return a,b,r
+
+MATCH (a:LOCATION {latitude: 29.961888,longitude:31.305797})-[r:LINE]->(b:LOCATION {latitude:  30.0154495 ,longitude:31.212008})
+return a,b,r
+
+to delete the relationship between the 2 nodes:
+-----------------------------------------------
+MATCH (a:LOCATION {latitude: 29.9617319,longitude:31.30579410000001})-[r:LINE]->(b:LOCATION {latitude: 30.0154402,longitude:31.2118712})
+DELETE r
+
+MATCH (a:LOCATION {latitude: 29.961888,longitude:31.305797})-[r:LINE]->(b:LOCATION {latitude: 30.01989 ,longitude:31.2115787})
+DELETE r
+
+to return the created relationship:
+--------------------------------
+MATCH (n1:LOCATION)-[r:LINE {name: 'ههههه'}]->(n2:LOCATION)
+RETURN n1,r,n2
+
+to delete the created relationship:
+-----------------------------------
+MATCH (:LOCATION)-[r:LINE {name: 'ههههه'}]->(:LOCATION)
+DELETE r
+
+*/
 module.exports = {
     findAll,
     orderByCost,
     orderByDistance,
     orderByTime,
-    nearby
+    nearby,
+    addNewRoute
 }
-
-
-
-/*
-
-      let nearbyArray = response.data;
-      let latitudes = {};
-      let longitudes = {};
-      let totalTime = {};
-
-      for (let i = 0; i < nearbyArray.length; i++) {
-        const innerArray = nearbyArray[i];
-        const key = i;
-
-        // Add the first element of each inner array to the array of the corresponding index in the object
-        latitudes[key] = [];
-        longitudes[key] = [];
-        for (let j = 0; j < innerArray.length; j++) {
-          const element = innerArray[j];
-
-          latitudes[key].push(element.latitude);
-          longitudes[key].push(element.longitude);
-        }
-      }
-
-      for(let pathNo=0 ; pathNo<latitudes.length -1 ; pathNo++){
-        
-        let latitudesArray = latitudes[pathNo]; 
-        let longitudesArray = longitudes[pathNo]; 
-        
-        for (let i = 0; i < latitudesArray.length - 1; i++) {
-          const originLat = latitudesArray[i];
-          const originLng = longitudesArray[i];
-          const destinationLat = latitudesArray[i + 1];
-          const destinationLng = longitudesArray[i + 1];
-      
-          calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng, function (duration) {
-            totalTime[pathNo] += duration
-          });
-        }
-      
-      }
-
-
-
-
-
-
-
-            let nearbyArray = response.data;
-      let latitudes = {};
-      let longitudes = {};
-      let totalTime = {};
-      // get the closest places to both loc & dest
-
-      for (let i = 0; i < nearbyArray.length; i++) {
-        const innerArray = nearbyArray[i];
-        const key = i;
-
-        // Add the first element of each inner array to the array of the corresponding index in the object
-        latitudes[key] = [];
-        longitudes[key] = [];
-        for (let j = 0; j < innerArray.length; j++) {
-          const element = innerArray[j];
-
-          latitudes[key].push(element.latitude);
-          longitudes[key].push(element.longitude);
-        }
-      }
-
-      for(let pathNo=0 ; pathNo<latitudes.length -1 ; pathNo++){
-        
-        let latitudesArray = latitudes[pathNo]; 
-        let longitudesArray = longitudes[pathNo]; 
-        
-        for (let i = 0; i < latitudesArray.length - 1; i++) {
-          const originLat = latitudesArray[i];
-          const originLng = longitudesArray[i];
-          const destinationLat = latitudesArray[i + 1];
-          const destinationLng = longitudesArray[i + 1];
-      
-          calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng, function (duration) {
-            totalTime[pathNo] += duration
-          });
-        }
-      
-      }
-
-*/

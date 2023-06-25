@@ -68,6 +68,21 @@ user.post('/nearestPaths', async (req, res) => {
     res.json(result);
   });
 
+user.post('/addNewRoute', async(req, res)=>{
+  const Location = req.body.Location;           //latitude,longitude
+    const Destination = req.body.Destination;  //latitude,longitude
+    let Cost =req.body.Cost;
+    const LineName = req.body.LineName;
+    const Type = req.body.Type;
+    const [locLat,locLong] = Location.split(',');
+    const [destLat,destLong] = Destination.split(',');
+
+    if(Cost == ""){
+      Cost = 7;
+  }
+    const result = await userModel.addNewRoute(locLat ,locLong,destLat,destLong,Cost,LineName,Type);
+    res.json(result);
+});
 
   // Return latLng of nearest location & destination
   function getLatLong(json) {
