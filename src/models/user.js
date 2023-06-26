@@ -350,103 +350,116 @@ const addNewRoute = async (
     lineName,
     type
   ) => {
-    try {
-      // nearby
-      const nearby = {
-        method: 'POST',
-        url: 'https://tawsila-api.onrender.com/nearby',
-        headers: {
-          'content-type': 'application/json',
-          'Accept-Encoding': 'null',
-        },
-        data: `{"Location":"${locationNodeLatitude}, ${locationNodeLongitude}","Destination":"${destinationNodeLatitude}, ${destinationNodeLongitude}"}`,
-      };
-  
-      const response = await axios.request(nearby);
-      const nearbyArrayLength = response.data.length;
-      const nearbyArray = response.data;
-      const nearbyLocations = [];
-      const nearbyDestinations = [];
-  
-      // get the closest places to both loc & dest
-      for (let i = 0; i < nearbyArrayLength; i++) {
-        if (nearbyArray[i].inputField === 'Location') {
-          nearbyLocations.push(nearbyArray[i]);
-          nearbyLocations.sort((a, b) => a.distance - b.distance);
-        } else if (nearbyArray[i].inputField === 'Destination') {
-          nearbyDestinations.push(nearbyArray[i]);
+    // check if the from & to points already exist
+    const result = await session.run(
+        `MATCH (n1:LOCATION {latitude: ${locationNodeLatitude},longitude:${locationNodeLongitude}})
+        -[r:LINE {cost: ${cost}, distance: 0.7,name: "${lineName}", type: "${type}"}]->
+        (n2:LOCATION {latitude: ${destinationNodeLatitude},longitude:${destinationNodeLongitude}})
+        RETURN n1,r,n2`);
+        const exists = result.records.length > 0; // check if query returned any records
+    if(exists) {
+        return false; // if node already exists, return false
+    }else{
+            try {
+                // nearby
+                const nearby = {
+                  method: 'POST',
+                  url: 'https://tawsila-api.onrender.com/nearby',
+                  headers: {
+                    'content-type': 'application/json',
+                    'Accept-Encoding': 'null',
+                  },
+                  data: `{"Location":"${locationNodeLatitude}, ${locationNodeLongitude}","Destination":"${destinationNodeLatitude}, ${destinationNodeLongitude}"}`,
+                };
+            
+                const response = await axios.request(nearby);
+                const nearbyArrayLength = response.data.length;
+                const nearbyArray = response.data;
+                const nearbyLocations = [];
+                const nearbyDestinations = [];
+            
+                // get the closest places to both loc & dest
+                for (let i = 0; i < nearbyArrayLength; i++) {
+                  if (nearbyArray[i].inputField === 'Location') {
+                    nearbyLocations.push(nearbyArray[i]);
+                    nearbyLocations.sort((a, b) => a.distance - b.distance);
+                  } else if (nearbyArray[i].inputField === 'Destination') {
+                    nearbyDestinations.push(nearbyArray[i]);
+                  }
+                }
+            
+                // search inside nearbyLocations, if you found any distance =0, take it as your location, else take the shortest distance
+                let newLocationLat;
+                let newLocationLong;
+                let location;
+                let locName;
+                let locWalkingDistance;
+                for (let i = 0; i < nearbyLocations.length; i++) {
+                  if (nearbyLocations[i].distance === 0) {
+                    newLocationLat = nearbyLocations[i].latitude;
+                    newLocationLong = nearbyLocations[i].longitude;
+                    location = `${newLocationLat},${newLocationLong}`;
+                    locName = nearbyLocations[i].name;
+                    // search in the orderByCost query using them by replacing only the loc
+            
+                    break;
+                  } else if (nearbyLocations[i].distance !== 0) {
+                    newLocationLat = nearbyLocations[0].latitude;
+                    newLocationLong = nearbyLocations[0].longitude;
+                    location = `${newLocationLat},${newLocationLong}`;
+                    locName = nearbyLocations[0].name;
+                    locWalkingDistance = nearbyLocations[0].distance;
+                    // search in the orderByCost query using them by replacing only the loc
+                  }
+                }
+            
+                // search inside nearbyDestinations, if you found any distance =0, take it as your destination, else take the shortest distance
+                let newDestinationLat;
+                let newDestinationLong;
+                let destination;
+                let destName;
+                let destWalkingDistance;
+                for (let i = 0; i < nearbyDestinations.length; i++) {
+                  if (nearbyDestinations[i].distance === 0) {
+                    newDestinationLat = nearbyDestinations[i].latitude;
+                    newDestinationLong = nearbyDestinations[i].longitude;
+                    destination = `${newDestinationLat},${newDestinationLong}`;
+                    destName = nearbyDestinations[i].name;
+                    // search in the orderByCost query using them by replacing only the dest
+            
+                    break;
+                  } else if (nearbyDestinations[i].distance !== 0) {
+                    newDestinationLat = nearbyDestinations[0].latitude;
+                    newDestinationLong = nearbyDestinations[0].longitude;
+                    destination = `${newDestinationLat},${newDestinationLong}`;
+                    destName = nearbyDestinations[0].name;
+                    destWalkingDistance = nearbyDestinations[0].distance;
+                    // search in the orderByCost query using them by replacing only the dest
+                  }
+                }
+            
+                // add new route
+                const result = await session.run(
+                  `MATCH (n1:LOCATION {latitude: ${newLocationLat},longitude: ${newLocationLong}}),
+                        (n2:LOCATION {latitude: ${newDestinationLat},longitude: ${newDestinationLong}})
+                  CREATE (n1)-[r:LINE {cost: ${cost}, distance: 0.7,name: "${lineName}", type: "${type}"}]->(n2)`);
+            
+              //   console.log(result);
+              //   console.log('HOLA! nearby is used');
+              console.log("newLocationLat:", newLocationLat);
+              console.log("newLocationLong:",newLocationLong);
+              console.log("newDestinationLat",newDestinationLat);
+              console.log("newDestinationLong", newDestinationLong);
+              console.log("**********************************");
+              console.log("nearbyLocations", nearbyLocations);
+              console.log("nearbyDestinations", nearbyDestinations);
+                return result;
+              } catch (error) {
+                console.log(error);
+              }
         }
-      }
-  
-      // search inside nearbyLocations, if you found any distance =0, take it as your location, else take the shortest distance
-      let newLocationLat;
-      let newLocationLong;
-      let location;
-      let locName;
-      let locWalkingDistance;
-      for (let i = 0; i < nearbyLocations.length; i++) {
-        if (nearbyLocations[i].distance === 0) {
-          newLocationLat = nearbyLocations[i].latitude;
-          newLocationLong = nearbyLocations[i].longitude;
-          location = `${newLocationLat},${newLocationLong}`;
-          locName = nearbyLocations[i].name;
-          // search in the orderByCost query using them by replacing only the loc
-  
-          break;
-        } else if (nearbyLocations[i].distance !== 0) {
-          newLocationLat = nearbyLocations[0].latitude;
-          newLocationLong = nearbyLocations[0].longitude;
-          location = `${newLocationLat},${newLocationLong}`;
-          locName = nearbyLocations[0].name;
-          locWalkingDistance = nearbyLocations[0].distance;
-          // search in the orderByCost query using them by replacing only the loc
-        }
-      }
-  
-      // search inside nearbyDestinations, if you found any distance =0, take it as your destination, else take the shortest distance
-      let newDestinationLat;
-      let newDestinationLong;
-      let destination;
-      let destName;
-      let destWalkingDistance;
-      for (let i = 0; i < nearbyDestinations.length; i++) {
-        if (nearbyDestinations[i].distance === 0) {
-          newDestinationLat = nearbyDestinations[i].latitude;
-          newDestinationLong = nearbyDestinations[i].longitude;
-          destination = `${newDestinationLat},${newDestinationLong}`;
-          destName = nearbyDestinations[i].name;
-          // search in the orderByCost query using them by replacing only the dest
-  
-          break;
-        } else if (nearbyDestinations[i].distance !== 0) {
-          newDestinationLat = nearbyDestinations[0].latitude;
-          newDestinationLong = nearbyDestinations[0].longitude;
-          destination = `${newDestinationLat},${newDestinationLong}`;
-          destName = nearbyDestinations[0].name;
-          destWalkingDistance = nearbyDestinations[0].distance;
-          // search in the orderByCost query using them by replacing only the dest
-        }
-      }
-  
-      // add new route
-      const result = await session.run(
-        `MATCH (n1:LOCATION {latitude: ${newLocationLat},longitude: ${newLocationLong}}),
-              (n2:LOCATION {latitude: ${newDestinationLat},longitude: ${newDestinationLong}})
-        CREATE (n1)-[r:LINE {cost: ${cost}, distance: 0.7,name: "${lineName}", type: "${type}"}]->(n2)`);
-  
-    //   console.log(result);
-    //   console.log('HOLA! nearby is used');
-    console.log("newLocationLat:", newLocationLat);
-    console.log("newLocationLong:",newLocationLong);
-    console.log("newDestinationLat",newDestinationLat);
-    console.log("newDestinationLong", newDestinationLong);
-    console.log("**********************************");
-    console.log("nearbyLocations", nearbyLocations);
-    console.log("nearbyDestinations", nearbyDestinations);
-      return result;
-    } catch (error) {
-      console.log(error);
-    }
+
+    
   };
 
 
@@ -479,6 +492,14 @@ to delete the created relationship:
 -----------------------------------
 MATCH (:LOCATION)-[r:LINE {name: 'ههههه'}]->(:LOCATION)
 DELETE r
+
+to check if the given point exists in database:
+-----------------------------------------------
+MATCH (n1:LOCATION {latitude: 29.9617319,longitude:31.30579410000001})-[r:LINE {distance:0.7 ,type:"microbus", cost:9 , name:"ههههه" }]->(n2:LOCATION {latitude: 30.0154402,longitude:31.2118712})
+RETURN n1,r,n2
+
+
+
 
 */
 module.exports = {
