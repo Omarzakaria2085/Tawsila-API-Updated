@@ -100,6 +100,48 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
     let records = result.records;
     let recordNo, segmentNo;
     let recordsLength = `${records.length}`;
+    let latitudes = {};
+    let longitudes = {};
+    let totalTime = {};
+    for (recordNo = 0; recordNo < recordsLength; recordNo++) {
+        let segments = result.records[recordNo]._fields[0].segments;
+        let segmentsLength = `${segments.length}`;
+        const key = recordNo;
+        latitudes[key] = [];
+        longitudes[key] = [];
+        for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
+            latitudes[key].push(segments[segmentNo].start.properties.latitude);
+            longitudes[key].push(segments[segmentNo].start.properties.longitude);
+            if (segmentNo == segmentsLength - 1) {
+                latitudes[key].push(segments[segmentNo].end.properties.latitude);
+                longitudes[key].push(segments[segmentNo].end.properties.longitude);
+            }
+        }
+    }
+    for (let pathNo = 0; pathNo < Object.keys(latitudes).length; pathNo++) {
+        let latitudesArray = latitudes[pathNo];
+        let longitudesArray = longitudes[pathNo];
+        totalTime[pathNo] = 0;
+        const promises = [];
+        for (let i = 0; i < latitudesArray.length - 1; i++) {
+            const originLat = latitudesArray[i];
+            const originLng = longitudesArray[i];
+            const destinationLat = latitudesArray[i + 1];
+            const destinationLng = longitudesArray[i + 1];
+            promises.push(
+                calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng)
+                    .then(duration => {
+                        totalTime[pathNo] += duration;
+                    })
+                    .catch(error => {
+                        console.error('An error occurred:', error);
+                    })
+            );
+        }
+
+        await Promise.all(promises);
+
+    }
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
@@ -123,7 +165,8 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: totalDistance
+                    totalDistance: totalDistance,
+                    totalTime: totalTime[recordNo]
                 });
             }
         }
@@ -161,6 +204,47 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
     let records = result.records;
     let recordNo, segmentNo;
     let recordsLength = `${records.length}`;
+    let latitudes = {};
+    let longitudes = {};
+    let totalTime = {};
+    for (recordNo = 0; recordNo < recordsLength; recordNo++) {
+        let segments = result.records[recordNo]._fields[0].segments;
+        let segmentsLength = `${segments.length}`;
+        const key = recordNo;
+        latitudes[key] = [];
+        longitudes[key] = [];
+        for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
+            latitudes[key].push(segments[segmentNo].start.properties.latitude);
+            longitudes[key].push(segments[segmentNo].start.properties.longitude);
+            if (segmentNo == segmentsLength - 1) {
+                latitudes[key].push(segments[segmentNo].end.properties.latitude);
+                longitudes[key].push(segments[segmentNo].end.properties.longitude);
+            }
+        }
+    }
+    for (let pathNo = 0; pathNo < Object.keys(latitudes).length; pathNo++) {
+        let latitudesArray = latitudes[pathNo];
+        let longitudesArray = longitudes[pathNo];
+        totalTime[pathNo] = 0;
+        const promises = [];
+        for (let i = 0; i < latitudesArray.length - 1; i++) {
+            const originLat = latitudesArray[i];
+            const originLng = longitudesArray[i];
+            const destinationLat = latitudesArray[i + 1];
+            const destinationLng = longitudesArray[i + 1];
+            promises.push(
+                calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng)
+                    .then(duration => {
+                        totalTime[pathNo] += duration;
+                    })
+                    .catch(error => {
+                        console.error('An error occurred:', error);
+                    })
+            );
+        }
+
+        await Promise.all(promises);
+    }
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
@@ -184,7 +268,8 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: totalDistance
+                    totalDistance: totalDistance,
+                    totalTime: totalTime[recordNo]
                 });
             }
         }
@@ -354,7 +439,7 @@ const addNewRoute = async (
     const result = await session.run(
         `MATCH (n1:LOCATION {latitude: ${locationNodeLatitude},longitude:${locationNodeLongitude}})
         -[r:LINE {cost: ${cost}, distance: 0.7,name: "${lineName}", type: "${type}"}]->
-        (n2:LOCATION {latitude: ${destinationNodeLatitude},longitude:${destinationNodeLongitude}})
+        (n2:LOCATION {latitude: ${destinationNodeLatitude},longitude:${}})
         RETURN n1,r,n2`);
         const exists = result.records.length > 0; // check if query returned any records
     if(exists) {
