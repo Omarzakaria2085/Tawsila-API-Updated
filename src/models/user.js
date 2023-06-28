@@ -439,7 +439,7 @@ const addNewRoute = async (
     const result = await session.run(
         `MATCH (n1:LOCATION {latitude: ${locationNodeLatitude},longitude:${locationNodeLongitude}})
         -[r:LINE {cost: ${cost}, distance: 0.7,name: "${lineName}", type: "${type}"}]->
-        (n2:LOCATION {latitude: ${destinationNodeLatitude},longitude:${}})
+        (n2:LOCATION {latitude: ${destinationNodeLatitude},longitude:${destinationNodeLongitude}})
         RETURN n1,r,n2`);
         const exists = result.records.length > 0; // check if query returned any records
     if(exists) {
