@@ -78,19 +78,26 @@ async function calculateDistanceAndTime(originLat, originLng, destinationLat, de
 }
 
 //function to order all available paths by distance given 2 points
+// M Osama: refactored to orderByDistance without redunduncy while keeping the response structure
 const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
     let result = await session.run(
         `
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),(n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
-        p =(n1)-[:LINE*]->(n2)
-        With count(*) as numberOfAvailablePaths
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),(n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
-        path =(n1)-[:LINE*]->(n2)
-        return path,numberOfAvailablePaths,reduce(s=0, i in relationships(path) | s+i.cost ) as totalCost,reduce(s=0, i in relationships(path) | s+i.distance ) as totalDistance,size(nodes(path)) as numberOfStops 
-        order By totalDistance,totalCost
+        MATCH (start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}),
+        (end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}})
+        WITH start, end
+        MATCH path = (start)-[:LINE*]->(end)
+        WHERE ALL(n IN nodes(path) WHERE size([m IN nodes(path) WHERE m = n]) = 1)
+        WITH count(path) AS numberOfAvailablePaths, collect(path) AS paths
+        UNWIND paths AS path
+        WITH numberOfAvailablePaths, path,
+        reduce(cost = 0, r IN relationships(path) | cost + r.cost) AS totalCost,
+        reduce(distance = 0, r IN relationships(path) | distance + r.distance) AS totalDistance,
+        size(nodes(path)) AS numberOfStops
+        RETURN path, numberOfAvailablePaths, totalCost, totalDistance, numberOfStops
+        ORDER BY totalDistance, totalCost
     `
-    )
+    )    
 
     let paths = [];
 
@@ -177,25 +184,28 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
 }
 
 //function to order all available paths by cost given 2 points
+// M Osama: refactored to orderByCost without redunduncy while keeping the response structure
 const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
     let result = await session.run(
         `
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),
-        (n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
-        p =(n1)-[:LINE*]->(n2)
-        With count(*) as numberOfAvailablePaths
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),
-        (n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
-        path =(n1)-[:LINE*]->(n2)
-        return path,numberOfAvailablePaths,
-        reduce(s=0, i in relationships(path) | s+i.cost ) as totalCost,
-        reduce(s=0, i in relationships(path) | s+i.distance ) as totalDistance,
-        size(nodes(path)) as numberOfStops 
-        order By totalCost,totalDistance
+        MATCH (start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}),
+        (end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}})
+        WITH start, end
+        MATCH path = (start)-[:LINE*]->(end)
+        WHERE ALL(n IN nodes(path) WHERE size([m IN nodes(path) WHERE m = n]) = 1)
+        WITH count(path) AS numberOfAvailablePaths, collect(path) AS paths
+        UNWIND paths AS path
+        WITH numberOfAvailablePaths, path,
+        reduce(cost = 0, r IN relationships(path) | cost + r.cost) AS totalCost,
+        reduce(distance = 0, r IN relationships(path) | distance + r.distance) AS totalDistance,
+        size(nodes(path)) AS numberOfStops
+        RETURN path, numberOfAvailablePaths, totalCost, totalDistance, numberOfStops
+        ORDER BY totalCost, totalDistance
     `
     )
 
+    
     // paths[]: an array to store the stops of all paths combined together in order but with no subarrays     
     let paths = [];
 
@@ -280,22 +290,24 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
 }
 
 //function to order all available paths by cost given 2 points
+// M Osama: refactored to orderByTime without redunduncy while keeping the response structure
 const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
     let result = await session.run(
         `
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),
-        (n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
-        p =(n1)-[:LINE*]->(n2)
-        With count(*) as numberOfAvailablePaths
-        MATCH (n1:LOCATION {latitude:${locationNodeLatitude},longitude:${locationNodeLongitude}} ),
-        (n2:LOCATION {latitude:${destinationNodeLatitude},longitude:${destinationNodeLongitude}}),
-        path =(n1)-[:LINE*]->(n2)
-        return path,numberOfAvailablePaths,
-        reduce(s=0, i in relationships(path) | s+i.cost ) as totalCost,
-        reduce(s=0, i in relationships(path) | s+i.distance ) as totalDistance,
-        size(nodes(path)) as numberOfStops 
-        order By totalCost,totalDistance
+        MATCH (start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}),
+        (end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}})
+        WITH start, end
+        MATCH path = (start)-[:LINE*]->(end)
+        WHERE ALL(n IN nodes(path) WHERE size([m IN nodes(path) WHERE m = n]) = 1)
+        WITH count(path) AS numberOfAvailablePaths, collect(path) AS paths
+        UNWIND paths AS path
+        WITH numberOfAvailablePaths, path,
+        reduce(cost = 0, r IN relationships(path) | cost + r.cost) AS totalCost,
+        reduce(distance = 0, r IN relationships(path) | distance + r.distance) AS totalDistance,
+        size(nodes(path)) AS numberOfStops
+        RETURN path, numberOfAvailablePaths, totalCost, totalDistance, numberOfStops
+        ORDER BY totalCost, totalDistance
     `
     )
 
