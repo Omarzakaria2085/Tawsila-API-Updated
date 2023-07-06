@@ -15,7 +15,9 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const googleMapsClient = new Client({});
 
 function getMetroCost(counter) {
-    if (counter <= 9) {
+    if(counter ==0){
+        return 0;
+    } else if (counter <= 9) {
         return 5;
     } else if (counter <= 16) {
         return 7;
@@ -119,8 +121,8 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
     let latitudes = {};
     let longitudes = {};
     let totalTime = {};
-    let metroCounter;
-    let metroCosts;    
+    let metroCounter=0;
+    let metroCosts=0;    
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
         let segmentsLength = `${segments.length}`;
@@ -250,7 +252,7 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
     let longitudes = {};
     let totalTime = {};
     let metroCounter;
-    let metroCosts;    
+    let metroCosts=0;    
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
@@ -379,7 +381,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
     let longitudes = {};
     let totalTime = {};
     let metroCounter;
-    let metroCosts;    
+    let metroCosts =0;    
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
