@@ -251,7 +251,7 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
     let latitudes = {};
     let longitudes = {};
     let totalTime = {};
-    let metroCounter;
+    let metroCounter=0;
     let metroCosts=0;    
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
@@ -380,7 +380,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
     let latitudes = {};
     let longitudes = {};
     let totalTime = {};
-    let metroCounter;
+    let metroCounter=0;
     let metroCosts =0;    
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
