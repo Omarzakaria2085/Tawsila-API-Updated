@@ -249,7 +249,8 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
     let latitudes = {};
     let longitudes = {};
     let totalTime = {};
-    let metroCost;
+    let metroCounter;
+    let metroCosts;    
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
@@ -296,18 +297,19 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
         let totalCost = 0; let totalDistance = 0;
         for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
 
+
             if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCost = getMetroCost(segments[segmentNo].relationship.properties.cost.low);
+                metroCounter = segments[segmentNo].relationship.properties.cost.low;
                 path.push({
-                    cost: metroCost,
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
+                    cost: segments[segmentNo].relationship.properties.cost.low,
                     distance: segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
-                totalCost += metroCost;
+                metroCounter+=metroCounter;
             } else {
                 path.push({
                     name: segments[segmentNo].start.properties.name,
@@ -322,9 +324,11 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
             }
 
 
-
             totalDistance += segments[segmentNo].relationship.properties.distance;
+            
             if (segmentNo == segmentsLength - 1) {
+                metroCosts=getMetroCost(metroCounter);
+                totalCost+=metroCosts;
                 path.push({
                     name: segments[segmentNo].end.properties.name,
                     latitude: segments[segmentNo].end.properties.latitude,
@@ -374,7 +378,8 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
     let latitudes = {};
     let longitudes = {};
     let totalTime = {};
-    let metroCost;
+    let metroCounter;
+    let metroCosts;    
 
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
@@ -424,8 +429,6 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
     }, {});
 
 
-    // console.log(totalTime);
-
     for (recordNo = 0; recordNo < recordsLength; recordNo++) {
         let segments = result.records[recordNo]._fields[0].segments;
         let segmentsLength = `${segments.length}`;
@@ -434,17 +437,17 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
 
 
             if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCost = getMetroCost(segments[segmentNo].relationship.properties.cost.low);
+                metroCounter = segments[segmentNo].relationship.properties.cost.low;
                 path.push({
-                    cost: metroCost,
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
+                    cost: segments[segmentNo].relationship.properties.cost.low,
                     distance: segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
-                totalCost += metroCost;
+                metroCounter+=metroCounter;
             } else {
                 path.push({
                     name: segments[segmentNo].start.properties.name,
@@ -460,7 +463,10 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
 
 
             totalDistance += segments[segmentNo].relationship.properties.distance;
+            
             if (segmentNo == segmentsLength - 1) {
+                metroCosts=getMetroCost(metroCounter);
+                totalCost+=metroCosts;
                 path.push({
                     name: segments[segmentNo].end.properties.name,
                     latitude: segments[segmentNo].end.properties.latitude,
