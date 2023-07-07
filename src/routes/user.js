@@ -53,6 +53,7 @@ user.post('/nearby', async (req, res) => {
     res.json(result);
 });
 
+
 user.post('/nearestPaths', async (req, res) => {
     const Location = req.body.Location;
     const Destination = req.body.Destination;
@@ -68,8 +69,10 @@ user.post('/nearestPaths', async (req, res) => {
     res.json(result);
   });
 
+
+
 user.post('/addNewRoute', async(req, res)=>{
-  const Location = req.body.Location;           //latitude,longitude
+    const Location = req.body.Location;           //latitude,longitude
     const Destination = req.body.Destination;  //latitude,longitude
     let Cost =req.body.Cost;
     const LineName = req.body.LineName;
@@ -84,17 +87,19 @@ user.post('/addNewRoute', async(req, res)=>{
     res.json(result);
 });
 
+
   // Return latLng of nearest location & destination
-  function getLatLong(json) {
-    const location = json.find(obj => obj.inputField === "Location");
-    const destination = json.find(obj => obj.inputField === "Destination");
-    return {
-      locationLat: location.latitude,
-      locationLong: location.longitude,
-      destinationLat: destination.latitude,
-      destinationLong: destination.longitude
-    };
-  }
+function getLatLong(json) {
+  const location = json.find(obj => obj.inputField === "Location");
+  const destination = json.find(obj => obj.inputField === "Destination");
+  return {
+    locationLat: parseFloat(location.latitude),
+    locationLong: parseFloat(location.longitude),
+    destinationLat: parseFloat(destination.latitude),
+    destinationLong: parseFloat(destination.longitude)
+  };
+}
+
 
 // export default user
 module.exports = user

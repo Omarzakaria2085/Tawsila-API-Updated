@@ -15,16 +15,13 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const googleMapsClient = new Client({});
 
 function getMetroCost(counter) {
-    if(counter ==0){
-        return 0;
-    } else if (counter <= 9) {
-        return 5;
-    } else if (counter <= 16) {
-        return 7;
-    } else if (counter <= 40) {
-        return 10;
-    }
+    if(counter==0){             return 0;   }
+    else if (counter <= 9) {    return 5;   }
+    else if (counter <= 16) {   return 7;   }
+    else if (counter <= 40) {   return 10;  }
 }
+
+
 // const axios = require('axios');
 
 // async function calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng) {
@@ -88,282 +85,135 @@ async function calculateDistanceAndTime(originLat, originLng, destinationLat, de
     }
 }
 
-//function to order all available paths by distance given 2 points
-// M Osama: refactored to orderByDistance without redunduncy while keeping the response structure
+// Function to order all available paths by distance given 2 points
+// M Osama: query is substituted & implementation is changed
 const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
-
     let result = await session.run(
         `
-        MATCH (start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}),
-        (end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}})
-        WITH start, end
-        MATCH path = (start)-[:LINE*]->(end)
-        WHERE ALL(n IN nodes(path) WHERE size([m IN nodes(path) WHERE m = n]) = 1)
-        WITH count(path) AS numberOfAvailablePaths, collect(path) AS paths
+        MATCH p = allShortestPaths((start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}})-[*]->(end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}))
+        WITH COLLECT(p) AS paths, COUNT(p) AS numberOfAvailablePaths
         UNWIND paths AS path
-        WITH numberOfAvailablePaths, path,
-        reduce(cost = 0, r IN relationships(path) | cost + r.cost) AS totalCost,
-        reduce(distance = 0, r IN relationships(path) | distance + r.distance) AS totalDistance,
-        size(nodes(path)) AS numberOfStops
+        WITH path, numberOfAvailablePaths, 
+            CASE WHEN REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost) % 1 = 0 THEN toInteger(REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost)) ELSE ROUND(REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost), 1) END AS totalCost, 
+            CASE WHEN REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance) % 1 = 0 THEN toInteger(REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance)) ELSE ROUND(REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance), 1) END AS totalDistance, 
+            SIZE(nodes(path)) AS numberOfStops
         RETURN path, numberOfAvailablePaths, totalCost, totalDistance, numberOfStops
         ORDER BY totalDistance, totalCost
-    `
-    )
+        `
+    );
 
     let paths = [];
-
-    //path[]: an array to represent each path in the paths[] as a subarray    
-    let path = [];
-    // explained in inkodo
     let records = result.records;
-    let recordNo, segmentNo;
-    let recordsLength = `${records.length}`;
-    let latitudes = {};
-    let longitudes = {};
-    let totalTime = {};
-    let metroCounter=0;
-    let metroCosts=0;    
-    for (recordNo = 0; recordNo < recordsLength; recordNo++) {
-        let segments = result.records[recordNo]._fields[0].segments;
-        let segmentsLength = `${segments.length}`;
-        const key = recordNo;
-        latitudes[key] = [];
-        longitudes[key] = [];
-        for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
-            latitudes[key].push(segments[segmentNo].start.properties.latitude);
-            longitudes[key].push(segments[segmentNo].start.properties.longitude);
-            if (segmentNo == segmentsLength - 1) {
-                latitudes[key].push(segments[segmentNo].end.properties.latitude);
-                longitudes[key].push(segments[segmentNo].end.properties.longitude);
-            }
-        }
-    }
-    for (let pathNo = 0; pathNo < Object.keys(latitudes).length; pathNo++) {
-        let latitudesArray = latitudes[pathNo];
-        let longitudesArray = longitudes[pathNo];
-        totalTime[pathNo] = 0;
-        const promises = [];
-        for (let i = 0; i < latitudesArray.length - 1; i++) {
-            const originLat = latitudesArray[i];
-            const originLng = longitudesArray[i];
-            const destinationLat = latitudesArray[i + 1];
-            const destinationLng = longitudesArray[i + 1];
-            promises.push(
-                calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng)
-                    .then(duration => {
-                        totalTime[pathNo] += duration;
-                    })
-                    .catch(error => {
-                        console.error('An error occurred:', error);
-                    })
-            );
-        }
 
-        await Promise.all(promises);
+    for (let recordNo = 0; recordNo < records.length; recordNo++) {
+        let pathSegments = records[recordNo].get('path').segments.map(segment => ({
+            name: segment.start.properties.name,
+            latitude: segment.start.properties.latitude,
+            longitude: segment.start.properties.longitude,
+            cost: segment.relationship.properties.cost.low ?? segment.relationship.properties.cost,
+            distance: segment.relationship.properties.distance.low ?? segment.relationship.properties.distance,
+            transportationType: segment.relationship.properties.type,
+            lineNumber: segment.relationship.properties.name
+        }));
 
-    }
+        let lastSegment = records[recordNo].get('path').segments[records[recordNo].get('path').segments.length - 1];
+        let totalCost = Number(records[recordNo].get('totalCost'));
+        let totalDistance = Number(records[recordNo].get('totalDistance'));
+        let totalTime = -3;
+        
+        // M Osama: refactored usage of calculating metro costs based on the number of metro segments
+        let metroCounter = pathSegments.filter(segment => segment.transportationType === 'metro').length;
+        let tempCost = getMetroCost(metroCounter)-metroCounter;
+        totalCost+=tempCost;
 
-    for (recordNo = 0; recordNo < recordsLength; recordNo++) {
-        let segments = result.records[recordNo]._fields[0].segments;
-        let segmentsLength = `${segments.length}`;
-        let totalCost = 0; let totalDistance = 0;
-        for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
+        let path = pathSegments.concat({
+            name: lastSegment.end.properties.name,
+            latitude: lastSegment.end.properties.latitude,
+            longitude: lastSegment.end.properties.longitude,
+            totalCost: totalCost,
+            totalDistance: totalDistance,
+            totalTime: totalTime
+        });
 
-
-            if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCounter = segments[segmentNo].relationship.properties.cost.low;
-                path.push({
-                    name: segments[segmentNo].start.properties.name,
-                    latitude: segments[segmentNo].start.properties.latitude,
-                    longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
-                    transportationType: segments[segmentNo].relationship.properties.type,
-                    lineNumber: segments[segmentNo].relationship.properties.name
-                });
-                metroCounter+=metroCounter;
-            } else {
-                path.push({
-                    name: segments[segmentNo].start.properties.name,
-                    latitude: segments[segmentNo].start.properties.latitude,
-                    longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
-                    transportationType: segments[segmentNo].relationship.properties.type,
-                    lineNumber: segments[segmentNo].relationship.properties.name
-                });
-                totalCost += segments[segmentNo].relationship.properties.cost.low;
-            }
-
-
-            totalDistance += segments[segmentNo].relationship.properties.distance;
-            
-            if (segmentNo == segmentsLength - 1) {
-                metroCosts=getMetroCost(metroCounter);
-                totalCost+=metroCosts;
-                path.push({
-                    name: segments[segmentNo].end.properties.name,
-                    latitude: segments[segmentNo].end.properties.latitude,
-                    longitude: segments[segmentNo].end.properties.longitude,
-                    totalCost: totalCost,
-                    totalDistance: totalDistance,
-                    totalTime: totalTime[recordNo]
-                });
-            }
-        }
         paths.push(path);
-        path = [];
     }
+
     return paths;
 }
 
-//function to order all available paths by cost given 2 points
-// M Osama: refactored to orderByCost without redunduncy while keeping the response structure
-const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
+// Function to order all available paths by distance given 2 points
+// M Osama: query is substituted & implementation is changed
+const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
     let result = await session.run(
         `
-        MATCH (start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}),
-        (end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}})
-        WITH start, end
-        MATCH path = (start)-[:LINE*]->(end)
-        WHERE ALL(n IN nodes(path) WHERE size([m IN nodes(path) WHERE m = n]) = 1)
-        WITH count(path) AS numberOfAvailablePaths, collect(path) AS paths
+        MATCH p = allShortestPaths((start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}})-[*]->(end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}))
+        WITH COLLECT(p) AS paths, COUNT(p) AS numberOfAvailablePaths
         UNWIND paths AS path
-        WITH numberOfAvailablePaths, path,
-        reduce(cost = 0, r IN relationships(path) | cost + r.cost) AS totalCost,
-        reduce(distance = 0, r IN relationships(path) | distance + r.distance) AS totalDistance,
-        size(nodes(path)) AS numberOfStops
+        WITH path, numberOfAvailablePaths, 
+            CASE WHEN REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost) % 1 = 0 THEN toInteger(REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost)) ELSE ROUND(REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost), 1) END AS totalCost, 
+            CASE WHEN REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance) % 1 = 0 THEN toInteger(REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance)) ELSE ROUND(REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance), 1) END AS totalDistance, 
+            SIZE(nodes(path)) AS numberOfStops
         RETURN path, numberOfAvailablePaths, totalCost, totalDistance, numberOfStops
         ORDER BY totalCost, totalDistance
-    `
-    )
+        `
+    );
 
-
-    // paths[]: an array to store the stops of all paths combined together in order but with no subarrays     
     let paths = [];
-
-    //path[]: an array to represent each path in the paths[] as a subarray    
-    let path = [];
     let records = result.records;
-    let recordNo, segmentNo;
-    let recordsLength = `${records.length}`;
-    let latitudes = {};
-    let longitudes = {};
-    let totalTime = {};
-    let metroCounter=0;
-    let metroCosts=0;    
 
-    for (recordNo = 0; recordNo < recordsLength; recordNo++) {
-        let segments = result.records[recordNo]._fields[0].segments;
-        let segmentsLength = `${segments.length}`;
-        const key = recordNo;
-        latitudes[key] = [];
-        longitudes[key] = [];
-        for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
-            latitudes[key].push(segments[segmentNo].start.properties.latitude);
-            longitudes[key].push(segments[segmentNo].start.properties.longitude);
-            if (segmentNo == segmentsLength - 1) {
-                latitudes[key].push(segments[segmentNo].end.properties.latitude);
-                longitudes[key].push(segments[segmentNo].end.properties.longitude);
-            }
-        }
-    }
-    for (let pathNo = 0; pathNo < Object.keys(latitudes).length; pathNo++) {
-        let latitudesArray = latitudes[pathNo];
-        let longitudesArray = longitudes[pathNo];
-        totalTime[pathNo] = 0;
-        const promises = [];
-        for (let i = 0; i < latitudesArray.length - 1; i++) {
-            const originLat = latitudesArray[i];
-            const originLng = longitudesArray[i];
-            const destinationLat = latitudesArray[i + 1];
-            const destinationLng = longitudesArray[i + 1];
-            promises.push(
-                calculateDistanceAndTime(originLat, originLng, destinationLat, destinationLng)
-                    .then(duration => {
-                        totalTime[pathNo] += duration;
-                    })
-                    .catch(error => {
-                        console.error('An error occurred:', error);
-                    })
-            );
-        }
+    for (let recordNo = 0; recordNo < records.length; recordNo++) {
+        let pathSegments = records[recordNo].get('path').segments.map(segment => ({
+            name: segment.start.properties.name,
+            latitude: segment.start.properties.latitude,
+            longitude: segment.start.properties.longitude,
+            cost: segment.relationship.properties.cost.low ?? segment.relationship.properties.cost,
+            distance: segment.relationship.properties.distance.low ?? segment.relationship.properties.distance,
+            transportationType: segment.relationship.properties.type,
+            lineNumber: segment.relationship.properties.name
+        }));
 
-        await Promise.all(promises);
-    }
+        let lastSegment = records[recordNo].get('path').segments[records[recordNo].get('path').segments.length - 1];
+        let totalCost = Number(records[recordNo].get('totalCost'));
+        let totalDistance = Number(records[recordNo].get('totalDistance'));
+        let totalTime = -3;
+        
+        // M Osama: refactored usage of calculating metro costs based on the number of metro segments
+        let metroCounter = pathSegments.filter(segment => segment.transportationType === 'metro').length;
+        let tempCost = getMetroCost(metroCounter)-metroCounter;
+        totalCost+=tempCost;
 
-    for (recordNo = 0; recordNo < recordsLength; recordNo++) {
-        let segments = result.records[recordNo]._fields[0].segments;
-        let segmentsLength = `${segments.length}`;
-        let totalCost = 0; let totalDistance = 0;
-        for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
+        let path = pathSegments.concat({
+            name: lastSegment.end.properties.name,
+            latitude: lastSegment.end.properties.latitude,
+            longitude: lastSegment.end.properties.longitude,
+            totalCost: totalCost,
+            totalDistance: totalDistance,
+            totalTime: totalTime
+        });
 
-
-            if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCounter = segments[segmentNo].relationship.properties.cost.low;
-                path.push({
-                    name: segments[segmentNo].start.properties.name,
-                    latitude: segments[segmentNo].start.properties.latitude,
-                    longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
-                    transportationType: segments[segmentNo].relationship.properties.type,
-                    lineNumber: segments[segmentNo].relationship.properties.name
-                });
-                metroCounter+=metroCounter;
-            } else {
-                path.push({
-                    name: segments[segmentNo].start.properties.name,
-                    latitude: segments[segmentNo].start.properties.latitude,
-                    longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
-                    transportationType: segments[segmentNo].relationship.properties.type,
-                    lineNumber: segments[segmentNo].relationship.properties.name
-                });
-                totalCost += segments[segmentNo].relationship.properties.cost.low;
-            }
-
-
-            totalDistance += segments[segmentNo].relationship.properties.distance;
-            
-            if (segmentNo == segmentsLength - 1) {
-                metroCosts=getMetroCost(metroCounter);
-                totalCost+=metroCosts;
-                path.push({
-                    name: segments[segmentNo].end.properties.name,
-                    latitude: segments[segmentNo].end.properties.latitude,
-                    longitude: segments[segmentNo].end.properties.longitude,
-                    totalCost: totalCost,
-                    totalDistance: totalDistance,
-                    totalTime: totalTime[recordNo]
-                });
-            }
-        }
         paths.push(path);
-        path = [];
     }
+
     return paths;
 }
 
+
+
+
 //function to order all available paths by cost given 2 points
-// M Osama: refactored to orderByTime without redunduncy while keeping the response structure
+// M Osama: only query is substituted
 const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinationNodeLatitude, destinationNodeLongitude) => {
 
     let result = await session.run(
         `
-        MATCH (start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}}),
-        (end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}})
-        WITH start, end
-        MATCH path = (start)-[:LINE*]->(end)
-        WHERE ALL(n IN nodes(path) WHERE size([m IN nodes(path) WHERE m = n]) = 1)
-        WITH count(path) AS numberOfAvailablePaths, collect(path) AS paths
+        MATCH p = allShortestPaths((start:LOCATION {latitude: ${locationNodeLatitude}, longitude: ${locationNodeLongitude}})-[*]->(end:LOCATION {latitude: ${destinationNodeLatitude}, longitude: ${destinationNodeLongitude}}))
+        WITH COLLECT(p) AS paths, COUNT(p) AS numberOfAvailablePaths
         UNWIND paths AS path
-        WITH numberOfAvailablePaths, path,
-        reduce(cost = 0, r IN relationships(path) | cost + r.cost) AS totalCost,
-        reduce(distance = 0, r IN relationships(path) | distance + r.distance) AS totalDistance,
-        size(nodes(path)) AS numberOfStops
+        WITH path, numberOfAvailablePaths, 
+            CASE WHEN REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost) % 1 = 0 THEN toInteger(REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost)) ELSE ROUND(REDUCE(cost = 0, rel IN relationships(path) | cost + rel.cost), 1) END AS totalCost, 
+            CASE WHEN REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance) % 1 = 0 THEN toInteger(REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance)) ELSE ROUND(REDUCE(distance = 0, rel IN relationships(path) | distance + rel.distance), 1) END AS totalDistance, 
+            SIZE(nodes(path)) AS numberOfStops
         RETURN path, numberOfAvailablePaths, totalCost, totalDistance, numberOfStops
         ORDER BY totalCost, totalDistance
     `
