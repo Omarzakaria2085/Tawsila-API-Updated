@@ -72,7 +72,7 @@ async function calculateDistanceAndTime(originLat, originLng, destinationLat, de
                 destination: `${destinationLat},${destinationLng}`,
                 mode: 'transit',
                 transit_mode: 'bus',
-                key: 'AIzaSyDERewK8rwT0KjgVnsWVNWf0nj0OLQBo2U'
+                key: 'AIzaSyAuYs2oF0fyvsFEF9W9eHOMmpRyEFNYT0w'
             }
         });
         if (response.data.status === 'OK') {
