@@ -139,7 +139,7 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
         for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
 
             if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCounter = segments[segmentNo].relationship.properties.cost.low;
+                metroCounter = segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost;
                 path.push({
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
@@ -160,11 +160,11 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
-                totalCost += segments[segmentNo].relationship.properties.cost.low;
+                totalCost += segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost;
             }
 
 
-            totalDistance += segments[segmentNo].relationship.properties.distance;
+            totalDistance += segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance;
 
             if (segmentNo == segmentsLength - 1) {
                 metroCosts = getMetroCost(metroCounter);
@@ -174,7 +174,7 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: parseFloat(parseFloat(totalDistance).toFixed(1)),
+                    totalDistance: totalDistance,
                     totalTime: totalTime[recordNo]
                 });
             }
@@ -269,7 +269,7 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
 
 
             if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCounter = segments[segmentNo].relationship.properties.cost.low;
+                metroCounter = segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost;
                 path.push({
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
@@ -290,11 +290,11 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
-                totalCost += segments[segmentNo].relationship.properties.cost.low;
+                totalCost += segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost;
             }
 
 
-            totalDistance += segments[segmentNo].relationship.properties.distance;
+            totalDistance += segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance;
 
             if (segmentNo == segmentsLength - 1) {
                 metroCosts = getMetroCost(metroCounter);
@@ -304,7 +304,7 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: parseFloat(parseFloat(totalDistance).toFixed(1)),
+                    totalDistance: totalDistance,
                     totalTime: totalTime[recordNo]
                 });
             }
@@ -407,7 +407,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
 
 
             if (segments[segmentNo].relationship.properties.type === 'metro') {
-                metroCounter = segments[segmentNo].relationship.properties.cost.low;
+                metroCounter = segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost;
                 path.push({
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
@@ -428,11 +428,11 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
-                totalCost += segments[segmentNo].relationship.properties.cost.low;
+                totalCost += segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost;
             }
 
 
-            totalDistance += segments[segmentNo].relationship.properties.distance;
+            totalDistance += segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance;
 
             if (segmentNo == segmentsLength - 1) {
                 metroCosts = getMetroCost(metroCounter);
@@ -442,7 +442,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: parseFloat(parseFloat(totalDistance).toFixed(1)),
+                    totalDistance: totalDistance,
                     totalTime: totalTime[recordNo]
                 });
             }
