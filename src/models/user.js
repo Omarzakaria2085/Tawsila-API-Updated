@@ -174,7 +174,7 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: parseInt(totalDistance),
+                    totalDistance: parseFloat(parseFloat(totalDistance).toFixed(1)),
                     totalTime: totalTime[recordNo]
                 });
             }
@@ -304,7 +304,7 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: parseInt(totalDistance),
+                    totalDistance: parseFloat(parseFloat(totalDistance).toFixed(1)),
                     totalTime: totalTime[recordNo]
                 });
             }
@@ -442,7 +442,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: parseInt(totalDistance),
+                    totalDistance: parseFloat(parseFloat(totalDistance).toFixed(1)),
                     totalTime: totalTime[recordNo]
                 });
             }
