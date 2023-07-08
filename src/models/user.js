@@ -138,15 +138,14 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
         let totalCost = 0; let totalDistance = 0;
         for (segmentNo = 0; segmentNo < segmentsLength; segmentNo++) {
 
-
             if (segments[segmentNo].relationship.properties.type === 'metro') {
                 metroCounter = segments[segmentNo].relationship.properties.cost.low;
                 path.push({
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
+                    cost: segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost,
+                    distance: segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
@@ -156,8 +155,8 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
+                    cost: segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost,
+                    distance: segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
@@ -175,7 +174,7 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: totalDistance,
+                    totalDistance: parseInt(totalDistance),
                     totalTime: totalTime[recordNo]
                 });
             }
@@ -275,8 +274,8 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
+                    cost: segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost,
+                    distance: segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
@@ -286,8 +285,8 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
+                    cost: segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost,
+                    distance: segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
@@ -305,7 +304,7 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: totalDistance,
+                    totalDistance: parseInt(totalDistance),
                     totalTime: totalTime[recordNo]
                 });
             }
@@ -413,8 +412,8 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
+                    cost: segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost,
+                    distance: segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
@@ -424,8 +423,8 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
                     name: segments[segmentNo].start.properties.name,
                     latitude: segments[segmentNo].start.properties.latitude,
                     longitude: segments[segmentNo].start.properties.longitude,
-                    cost: segments[segmentNo].relationship.properties.cost.low,
-                    distance: segments[segmentNo].relationship.properties.distance,
+                    cost: segments[segmentNo].relationship.properties.cost.low ?? segments[segmentNo].relationship.properties.cost,
+                    distance: segments[segmentNo].relationship.properties.distance.low ?? segments[segmentNo].relationship.properties.distance,
                     transportationType: segments[segmentNo].relationship.properties.type,
                     lineNumber: segments[segmentNo].relationship.properties.name
                 });
@@ -443,7 +442,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
                     latitude: segments[segmentNo].end.properties.latitude,
                     longitude: segments[segmentNo].end.properties.longitude,
                     totalCost: totalCost,
-                    totalDistance: totalDistance,
+                    totalDistance: parseInt(totalDistance),
                     totalTime: totalTime[recordNo]
                 });
             }
