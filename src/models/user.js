@@ -182,6 +182,7 @@ const orderByDistance = async (locationNodeLatitude, locationNodeLongitude, dest
         paths.push(path);
         path = [];
     }
+    paths.sort(sortByTotalDistance);
     return paths;
 }
 
@@ -312,7 +313,36 @@ const orderByCost = async (locationNodeLatitude, locationNodeLongitude, destinat
         paths.push(path);
         path = [];
     }
+
+
+    paths.sort(sortByTotalCost);
     return paths;
+}
+
+function sortByTotalCost(a, b) {
+    const totalCostA = a[a.length - 1].totalCost;
+    const totalCostB = b[b.length - 1].totalCost;
+
+    return totalCostA - totalCostB;
+}
+
+function sortByTotalTime(a, b) {
+    const totalTimeA = a[a.length - 1].totalTime;
+    const totalTimeB = b[b.length - 1].totalTime;
+
+    return totalTimeA - totalTimeB;
+}
+
+function sortByTotalDistance(a, b) {
+    const totalDistanceA = a[a.length - 1].totalDistance;
+    const totalDistanceB = b[b.length - 1].totalDistance;
+
+    if (totalDistanceA === totalDistanceB) {
+        const totalCostA = a[a.length - 1].totalCost;
+        const totalCostB = b[b.length - 1].totalCost;
+        return totalCostA - totalCostB;
+      }
+    return totalDistanceA - totalDistanceB;
 }
 
 //function to order all available paths by cost given 2 points
@@ -450,6 +480,7 @@ const orderByTime = async (locationNodeLatitude, locationNodeLongitude, destinat
         paths.push(path);
         path = [];
     }
+    paths.sort(sortByTotalTime);
     return paths;
 }
 
