@@ -41,7 +41,7 @@ async function calculateDistanceAndTime(originLat, originLng, destinationLat, de
                 destination: `${destinationLat},${destinationLng}`,
                 mode: 'transit',
                 transit_mode: 'bus',
-                key: 'AIzaSyBnDdZwes8n2Icz5XFeId1r5e-qhHmMWfU'
+                key: 'AIzaSyDRD6Vi05Wb_t15QCCsJNieZ9qUghKCglk'
             }
         });
         if (response.data.status === 'OK') {
@@ -341,7 +341,7 @@ function sortByTotalDistance(a, b) {
         const totalCostA = a[a.length - 1].totalCost;
         const totalCostB = b[b.length - 1].totalCost;
         return totalCostA - totalCostB;
-      }
+    }
     return totalDistanceA - totalDistanceB;
 }
 
